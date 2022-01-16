@@ -1,6 +1,6 @@
 ## @sternelee/rlottie
 
-使用 `lottie` + `pako` + `webworker` 在前端实现 `lottie` 的动画效果, 如 telegram 官网动画的效果
+使用 `rlottie` + `pako` + `webworker` 在前端实现 `lottie` 的动画效果, 如 telegram 官网动画的效果, 或本地演示 `npm run dev`
 
 ### 将 `lottie` 动画`json`文件使用 `pako` 压缩 生成素材资源
 
