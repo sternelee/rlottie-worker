@@ -1,0 +1,31 @@
+{
+  "name": "@sternelee/rlottie",
+  "version": "1.0.0",
+  "author": "sternelee",
+  "main": "dist/lib/index.umd.js",
+  "module": "dist/lib/index.es.js",
+  "types": "dist/types/index.d.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "rlottie",
+    "webworker",
+    "pako"
+  ],
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ],
+  "devDependencies": {
+    "typescript": "^4.4.4",
+    "vite": "^2.7.2"
+  },
+  "dependencies": {
+    "@types/pako": "^1.0.3",
+    "pako": "^2.0.4"
+  }
+}
