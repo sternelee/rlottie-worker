@@ -7,6 +7,7 @@
 ```javasript
 const pako = require('pako')
 const fs = require('fs')
+// 建议先把 json 文件压缩: jq -c . < input.json > input.mini.json
 fs.readFile('./json/xxx.json', null, function (err, data) {
   if (err) {
     console.log(err)
@@ -35,7 +36,7 @@ fs.readFile('./json/xxx.json', null, function (err, data) {
 
 2. 实现动画
 
-将模块目录下的 `rlottie-webworker.[hash].js` 和 `rlottie-wasm.wasm` 放置在您的静态资源目录,方便模块加载
+将模块目录下的 `rlottie-worker.[hash].js` 和 `rlottie-wasm.wasm` 放置在您的静态资源目录,方便模块加载
 
 ```javasript
 import Rlottie from '@sternelee/rlottie'
