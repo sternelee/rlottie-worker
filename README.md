@@ -30,13 +30,13 @@ fs.readFile('./json/xxx.json', null, function (err, data) {
 
 ```html
 <picture class="rlottie_image">
-  <source type="application/x-rlottie" srcset="/xxx">
+  <source type="application/x-rlottie" srcset="xxx">
 </picture>
 ```
 
 2. 实现动画
 
-将模块目录下的 `rlottie-worker.[hash].js` 和 `rlottie-wasm.wasm` 放置在您的静态资源目录,方便模块加载
+~~将模块目录下的 `rlottie-worker.[hash].js` 和 `rlottie-wasm.wasm` 放置在您的静态资源目录,方便模块加载~~
 
 ```javasript
 import Rlottie from '@sternelee/rlottie'
