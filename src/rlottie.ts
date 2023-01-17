@@ -1,4 +1,4 @@
-import Worker from './rlottie-worker.ts?worker'
+import Worker from './rlottie-worker.ts?worker&inline'
 
 class Rlottie {
   private apiInitStarted = false;

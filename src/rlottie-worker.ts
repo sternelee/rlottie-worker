@@ -1,4 +1,5 @@
-import { Module } from './rlottie-wasm'
+// import { Module } from './rlottie-wasm'
+import { Module } from './rlottie-wasm-data'
 
 import { inflate } from 'pako'
 
