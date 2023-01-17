@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { wasmContent } from './rlottie-wasm-base64'
-// 不依赖外部wasm文件的加载式
 
 var Module = typeof Module !== "undefined" ? Module : {};
 var moduleOverrides = {};
@@ -656,7 +655,7 @@ function isDataURI(filename) {
     ? filename.startsWith(dataURIPrefix)
     : filename.indexOf(dataURIPrefix) === 0;
 }
-// var wasmBinaryFile = "rlottie-wasm.wasm";
+// var wasmBinaryFile = URL.createObjectURL(new Blob([wasmContent]));
 var wasmBinaryFile = wasmContent;
 if (!isDataURI(wasmBinaryFile)) {
   wasmBinaryFile = locateFile(wasmBinaryFile);

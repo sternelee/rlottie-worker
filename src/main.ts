@@ -1,8 +1,8 @@
 import './style.css'
-import RLottie from './index'  // 打包时用
+// import { RLottie } from './rlottie'
 
 // pnpm add ./
-// import RLottie from '@sternelee/rlottie' // 使用当前打包的模块
+import RLottie from '@sternelee/rlottie' // 使用当前打包的模块
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 

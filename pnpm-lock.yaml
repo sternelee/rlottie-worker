@@ -1,12 +1,14 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@sternelee/rlottie': ^1.1.0
   '@types/pako': ^1.0.3
   pako: ^2.0.4
   typescript: ^4.4.4
   vite: ^2.7.2
 
 dependencies:
+  '@sternelee/rlottie': 1.1.0
   '@types/pako': 1.0.3
   pako: 2.0.4
 
@@ -15,6 +17,13 @@ devDependencies:
   vite: 2.7.3
 
 packages:
+
+  /@sternelee/rlottie/1.1.0:
+    resolution: {integrity: sha512-wpTPekSrO9KiVDtX93UsICklOULch4VEObrBBLz61Z0eKfXuIcU+di4LeufdfvHGEj5Ip04EP6ks9a1aWPoHfA==}
+    dependencies:
+      '@types/pako': 1.0.3
+      pako: 2.0.4
+    dev: false
 
   /@types/pako/1.0.3:
     resolution: {integrity: sha512-EDxOsHAD5dqjbjEUM1xwa7rpKPFb8ECBE5irONTQU7/OsO3thI5YrNEWSPNMvYmvFM0l/OLQJ6Mgw7PEdXSjhg==, tarball: '@types/pako/download/@types/pako-1.0.3.tgz'}
