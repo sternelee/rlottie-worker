@@ -1,6 +1,7 @@
 ## @sternelee/rlottie
 
 使用 `rlottie` + `pako` + `webworker` 在前端实现 `lottie` 的动画效果, 如 telegram 官网动画的效果, 或本地演示 `npm run dev`
+优势: 体积更小，只需要 835kb 库文件 + 10Kb 左右的素材
 
 ### 将 `lottie` 动画`json`文件使用 `pako` 压缩 生成素材资源
 
@@ -37,6 +38,7 @@ fs.readFile('./json/xxx.json', null, function (err, data) {
 2. 实现动画
 
 ~~将模块目录下的 `rlottie-worker.[hash].js` 和 `rlottie-wasm.wasm` 放置在您的静态资源目录,方便模块加载~~
+已经将wasm转成base64打入代码中
 
 ```javasript
 import Rlottie from '@sternelee/rlottie'
