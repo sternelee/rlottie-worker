@@ -1,23 +1,56 @@
 import Worker from './rlottie-worker.ts?worker&inline'
 
+interface IOptions {
+  maxDeviceRatio?: number; // 比率，可控制大小
+  cachingModule?: number;
+  playOnce?: boolean;
+  forceRender?: boolean;
+}
+
+interface IRlPlayer {
+  thumb: HTMLImageElement | null;
+  isInViewport: boolean;
+  reqId: number;
+  el: HTMLPictureElement;
+  nextFrameNo: number;
+  frames: {
+    [key: number]: Uint8ClampedArray;
+  };
+  width: number;
+  height: number;
+  rWorker: QueryableWorker;
+  options: IOptions;
+  paused: boolean;
+  times: number[];
+  clamped: Uint8ClampedArray;
+  imageData: ImageData;
+  frameCount: number;
+  frameQueue: FrameQueue;
+  frameThen: number;
+  frameInterval: number;
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  fps: number;
+  forceRender: boolean;
+}
+
 class Rlottie {
   private apiInitStarted = false;
   private apiInited = false;
-  private initCallbacks: any[] = [];
+  private initCallbacks: Function[] = [];
   private deviceRatio = window.devicePixelRatio || 1;
-  private rlottieWorkers: any[] = [];
+  private rlottieWorkers: QueryableWorker[] = [];
   private curWorkerNum = 0;
   private startTime = +new Date();
   private dT() {
     return "[" + (+new Date() - this.startTime) / 1000.0 + "] ";
   }
   private reqId = 0;
-  private mainLoopTO: any = false;
-  private checkViewportDate: any = false;
-  private lastRenderDate: any = false;
+  private mainLoopTO: number = 0;
+  private checkViewportDate: number = 0;
+  private lastRenderDate: number = 0;
   private userAgent = window.navigator.userAgent;
-  Api: any = {};
-  players: any = Object.create(null);
+  players: { [key: string]: IRlPlayer } = Object.create(null);
   WORKERS_LIMIT = 1;
   isSafari = !!(
     this.userAgent &&
@@ -54,13 +87,13 @@ class Rlottie {
   }
   isSupported = this._isSupported();
   private mainLoop = () => {
-    var key, rlPlayer, delta, rendered;
-    var now = +Date.now();
-    var checkViewport = !this.checkViewportDate || (now - this.checkViewportDate) > 1000;
+    let key, rlPlayer, delta, rendered;
+    let now = +Date.now();
+    let checkViewport =
+      !this.checkViewportDate || now - this.checkViewportDate > 1000;
     for (key in this.players) {
       rlPlayer = this.players[key];
-      if (rlPlayer &&
-          rlPlayer.frameCount) {
+      if (rlPlayer && rlPlayer.frameCount) {
         delta = now - rlPlayer.frameThen;
         if (delta > rlPlayer.frameInterval) {
           rendered = this.render(rlPlayer, checkViewport);
@@ -70,35 +103,36 @@ class Rlottie {
         }
       }
     }
-    var delay = now - this.lastRenderDate < 100 ? 16 : 500;
+    let delay = now - this.lastRenderDate < 100 ? 16 : 500;
     if (delay < 20 && this.isRAF) {
-      this.mainLoopTO = requestAnimationFrame(this.mainLoop)
+      this.mainLoopTO = requestAnimationFrame(this.mainLoop);
     } else {
       this.mainLoopTO = setTimeout(this.mainLoop, delay);
     }
     if (checkViewport) {
       this.checkViewportDate = now;
     }
-  }
+  };
   private setupMainLoop() {
-    var isEmpty = true, key, rlPlayer;
+    let isEmpty = true,
+      key,
+      rlPlayer;
     for (key in this.players) {
       rlPlayer = this.players[key];
-      if (rlPlayer &&
-          rlPlayer.frameCount) {
+      if (rlPlayer && rlPlayer.frameCount) {
         isEmpty = false;
         break;
       }
     }
-    if ((this.mainLoopTO !== false) === isEmpty) {
+    if (!!this.mainLoopTO === isEmpty) {
       if (isEmpty) {
         if (this.isRAF) {
           cancelAnimationFrame(this.mainLoopTO);
         }
         try {
           clearTimeout(this.mainLoopTO);
-        } catch (e) {};
-        this.mainLoopTO = false;
+        } catch (e) {}
+        this.mainLoopTO = 0;
       } else {
         if (this.isRAF) {
           this.mainLoopTO = requestAnimationFrame(this.mainLoop);
@@ -110,41 +144,47 @@ class Rlottie {
   }
 
   private initApi(callback: Function) {
-    const that = this
+    const that = this;
     if (this.apiInited) {
       callback && callback();
     } else {
       callback && this.initCallbacks.push(callback);
       if (!this.apiInitStarted) {
-        console.log(this.dT(), 'rlottie init');
+        console.log(this.dT(), "rlottie init");
         this.apiInitStarted = true;
-        var workersRemain = this.WORKERS_LIMIT;
-        var firstRlottieWorker = this.rlottieWorkers[0] = new QueryableWorker();
-        firstRlottieWorker.addListener('ready', function () {
-          console.log(that.dT(), 'worker #0 ready');
-          firstRlottieWorker.addListener('frame', that.onFrame);
-          firstRlottieWorker.addListener('loaded', that.onLoaded);
+        let workersRemain = this.WORKERS_LIMIT;
+        let firstRlottieWorker = (this.rlottieWorkers[0] =
+          new QueryableWorker());
+        firstRlottieWorker.addListener("ready", function () {
+          console.log(that.dT(), "worker #0 ready");
+          firstRlottieWorker.addListener("frame", that.onFrame);
+          firstRlottieWorker.addListener("loaded", that.onLoaded);
           --workersRemain;
           if (!workersRemain) {
-            console.log(that.dT(), 'workers ready');
+            console.log(that.dT(), "workers ready");
             that.apiInited = true;
-            for (var i = 0; i < that.initCallbacks.length; i++) {
+            for (let i = 0; i < that.initCallbacks.length; i++) {
               that.initCallbacks[i]();
             }
             that.initCallbacks = [];
           } else {
-            for (var workerNum = 1; workerNum < that.WORKERS_LIMIT; workerNum++) {
-              (function(workerNum) {
-                var rlottieWorker = that.rlottieWorkers[workerNum] = new QueryableWorker();
-                rlottieWorker.addListener('ready', function () {
-                  console.log(that.dT(), 'worker #' + workerNum + ' ready');
-                  rlottieWorker.addListener('frame', that.onFrame);
-                  rlottieWorker.addListener('loaded', that.onLoaded);
+            for (
+              let workerNum = 1;
+              workerNum < that.WORKERS_LIMIT;
+              workerNum++
+            ) {
+              (function (workerNum) {
+                let rlottieWorker = (that.rlottieWorkers[workerNum] =
+                  new QueryableWorker());
+                rlottieWorker.addListener("ready", function () {
+                  console.log(that.dT(), "worker #" + workerNum + " ready");
+                  rlottieWorker.addListener("frame", that.onFrame);
+                  rlottieWorker.addListener("loaded", that.onLoaded);
                   --workersRemain;
                   if (!workersRemain) {
-                    console.log(that.dT(), 'workers ready');
+                    console.log(that.dT(), "workers ready");
                     that.apiInited = true;
-                    for (var i = 0; i < that.initCallbacks.length; i++) {
+                    for (let i = 0; i < that.initCallbacks.length; i++) {
                       that.initCallbacks[i]();
                     }
                     that.initCallbacks = [];
@@ -170,14 +210,17 @@ class Rlottie {
     this.rlottieWorkers = [];
   }
 
-  private initPlayer(el: any, options: any) {
+  private initPlayer(
+    el: HTMLPictureElement & { rlPlayer: IRlPlayer },
+    options: IOptions
+  ) {
     if (el.rlPlayer) return;
     if (el.tagName.toLowerCase() != "picture") {
       console.warn("only picture tag allowed");
       return;
     }
     options = options || {};
-    let rlPlayer: any = (el.rlPlayer = {});
+    let rlPlayer = (el.rlPlayer = {} as IRlPlayer);
     rlPlayer.thumb = el.querySelector("img");
     let tgs_source = el.querySelector('source[type="application/x-rlottie"]');
     let url = (tgs_source && tgs_source.getAttribute("srcset")) || "";
@@ -185,8 +228,8 @@ class Rlottie {
       console.warn("picture source application/x-rlottie not found");
       return;
     }
-    let pic_width = el.clientWidth || el.getAttribute("width");
-    let pic_height = el.clientHeight || el.getAttribute("height");
+    let pic_width = (el.clientWidth || el.getAttribute("width")) as number;
+    let pic_height = (el.clientHeight || el.getAttribute("height")) as number;
     let curDeviceRatio = options.maxDeviceRatio
       ? Math.min(options.maxDeviceRatio, this.deviceRatio)
       : this.deviceRatio;
@@ -196,7 +239,7 @@ class Rlottie {
     rlPlayer.reqId = ++this.reqId;
     this.players[this.reqId] = rlPlayer;
     rlPlayer.el = el;
-    rlPlayer.nextFrameNo = false;
+    rlPlayer.nextFrameNo = 0;
     rlPlayer.frames = {};
     rlPlayer.width = Math.trunc(pic_width * curDeviceRatio);
     rlPlayer.height = Math.trunc(pic_height * curDeviceRatio);
@@ -228,26 +271,30 @@ class Rlottie {
     this.setupMainLoop();
   }
 
-  private render(rlPlayer: any, checkViewport: any) {
-    if (!rlPlayer.canvas ||
-        rlPlayer.canvas.width == 0 ||
-        rlPlayer.canvas.height == 0) {
+  private render(rlPlayer: IRlPlayer, checkViewport: boolean) {
+    if (
+      !rlPlayer.canvas ||
+      rlPlayer.canvas.width == 0 ||
+      rlPlayer.canvas.height == 0
+    ) {
       return false;
     }
     if (!rlPlayer.forceRender) {
-      var focused = window.isFocused ? window.isFocused() : document.hasFocus();
-      if (!focused ||
-          rlPlayer.paused ||
-          !rlPlayer.frameCount) {
+      let focused = window.isFocused ? window.isFocused() : document.hasFocus();
+      if (!focused || rlPlayer.paused || !rlPlayer.frameCount) {
         return false;
       }
-      var isInViewport = rlPlayer.isInViewport;
+      let isInViewport = rlPlayer.isInViewport;
       if (isInViewport === undefined || checkViewport) {
-        var rect = rlPlayer.el.getBoundingClientRect();
-        if (rect.bottom < 0 ||
-            rect.right < 0 ||
-            rect.top > (window.innerHeight || document.documentElement.clientHeight) ||
-            rect.left > (window.innerWidth || document.documentElement.clientWidth)) {
+        let rect = rlPlayer.el.getBoundingClientRect();
+        if (
+          rect.bottom < 0 ||
+          rect.right < 0 ||
+          rect.top >
+            (window.innerHeight || document.documentElement.clientHeight) ||
+          rect.left >
+            (window.innerWidth || document.documentElement.clientWidth)
+        ) {
           isInViewport = false;
         } else {
           isInViewport = true;
@@ -258,12 +305,12 @@ class Rlottie {
         return false;
       }
     }
-    var frame = rlPlayer.frameQueue.shift();
+    let frame = rlPlayer.frameQueue.shift();
     if (frame !== null) {
       this.doRender(rlPlayer, frame);
-      var nextFrameNo = rlPlayer.nextFrameNo;
-      if (nextFrameNo !== false) {
-        rlPlayer.nextFrameNo = false;
+      let nextFrameNo = rlPlayer.nextFrameNo;
+      if (nextFrameNo !== 0) {
+        rlPlayer.nextFrameNo = 0;
         this.requestFrame(rlPlayer.reqId, nextFrameNo);
       }
     }
@@ -271,8 +318,8 @@ class Rlottie {
     return true;
   }
 
-  private doRender(rlPlayer: any, frame: any) {
-    rlPlayer.forceRender = false;
+  private doRender(rlPlayer: IRlPlayer, frame: ArrayLike<number>) {
+    rlPlayer.forceRender = rlPlayer.options.forceRender || false;
     rlPlayer.imageData.data.set(frame);
     rlPlayer.context.putImageData(rlPlayer.imageData, 0, 0);
     let now = +new Date();
@@ -282,6 +329,7 @@ class Rlottie {
     rlPlayer.frameThen = now - (now % rlPlayer.frameInterval);
     if (rlPlayer.thumb) {
       rlPlayer.el.removeChild(rlPlayer.thumb);
+      // @ts-ignore
       delete rlPlayer.thumb;
     }
   }
@@ -309,12 +357,12 @@ class Rlottie {
     }
   }
 
-  private onFrame = (reqId: any, frameNo: any, frame: any) => {
+  private onFrame = (reqId: number, frameNo: number, frame: ArrayBuffer) => {
     let rlPlayer = this.players[reqId];
     if (
-      rlPlayer.options.cachingModulo &&
+      rlPlayer.options.cachingModule &&
       !rlPlayer.frames[frameNo] &&
-      (!frameNo || (reqId + frameNo) % rlPlayer.options.cachingModulo)
+      (!frameNo || (reqId + frameNo) % rlPlayer.options.cachingModule)
     ) {
       rlPlayer.frames[frameNo] = new Uint8ClampedArray(frame);
     }
@@ -340,16 +388,18 @@ class Rlottie {
     } else {
       rlPlayer.nextFrameNo = nextFrameNo;
     }
-  }
+  };
 
-  private onLoaded = (reqId: any, frameCount: any, fps: any = 60) => {
+  private onLoaded = (reqId: number, frameCount: number, fps: number = 60) => {
     let rlPlayer = this.players[reqId];
 
     rlPlayer.canvas = document.createElement("canvas");
     rlPlayer.canvas.width = rlPlayer.width;
     rlPlayer.canvas.height = rlPlayer.height;
     rlPlayer.el.appendChild(rlPlayer.canvas);
-    rlPlayer.context = rlPlayer.canvas.getContext("2d");
+    rlPlayer.context = rlPlayer.canvas.getContext(
+      "2d"
+    ) as CanvasRenderingContext2D;
 
     rlPlayer.fps = fps;
     rlPlayer.frameInterval = 1000 / rlPlayer.fps;
@@ -359,12 +409,13 @@ class Rlottie {
     rlPlayer.frameQueue = new FrameQueue(fps / 4);
     this.setupMainLoop();
     this.requestFrame(reqId, 0);
-  }
+  };
 
-  init(el: any, options: any) {
+  init(el: HTMLPictureElement, options: any) {
     if (!this.isSupported) {
       return false;
     }
+    // @ts-ignore
     this.initApi(() => this.initPlayer(el, options));
   }
 }
@@ -414,7 +465,7 @@ class QueryableWorker {
     This functions takes at least one argument, the method name we want to query.
     Then we can pass in the arguments this the method needs.
   */
-  sendQuery() {
+  sendQuery(...arg: any[]) {
     if (arguments.length < 1) {
       throw new TypeError(
         "QueryableWorker.sendQuery takes at least one argument"

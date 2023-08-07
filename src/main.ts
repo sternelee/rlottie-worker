@@ -1,8 +1,8 @@
 import './style.css'
-// import { RLottie } from './rlottie'
+import { RLottie } from './rlottie'
 
 // pnpm add ./
-import RLottie from '@sternelee/rlottie' // 使用当前打包的模块
+// import RLottie from '@sternelee/rlottie' // 使用当前打包的模块
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 
@@ -19,5 +19,5 @@ function mainInitTgStickers(options: any) {
 }
 
 window.onload = () => {
-  mainInitTgStickers({"maxDeviceRatio":2,"cachingModulo":3,"unsupportedURL":"\/?notgs=1"});
+  mainInitTgStickers({"maxDeviceRatio":2,"cachingModulo":3,forceRender: true});
 }
