@@ -34,6 +34,13 @@ interface IRlPlayer {
   forceRender: boolean;
 }
 
+const userAgent = window.navigator.userAgent;
+const isSafari = !!(
+    userAgent &&
+    (/\b(iPad|iPhone|iPod)\b/.test(userAgent) ||
+      (!!userAgent.match("Safari") && !userAgent.match("Chrome"))));
+
+
 class Rlottie {
   private apiInitStarted = false;
   private apiInited = false;
@@ -49,15 +56,9 @@ class Rlottie {
   private mainLoopTO: number = 0;
   private checkViewportDate: number = 0;
   private lastRenderDate: number = 0;
-  private userAgent = window.navigator.userAgent;
   players: { [key: string]: IRlPlayer } = Object.create(null);
   WORKERS_LIMIT = 1;
-  isSafari = !!(
-    this.userAgent &&
-    (/\b(iPad|iPhone|iPod)\b/.test(this.userAgent) ||
-      (!!this.userAgent.match("Safari") && !this.userAgent.match("Chrome")))
-  );
-  private isRAF = this.isSafari;
+  private isRAF = isSafari;
   // private isRAF = true;
   private wasmIsSupported() {
     try {
@@ -256,8 +257,19 @@ class Rlottie {
     );
   }
 
+  destroyAll () {
+    const players = this.players
+    for (const key in players) {
+      // @ts-ignore
+      if (players[key]) this.destroy(players[key].el);
+    }
+    this.destroyWorkers()
+  }
+
   destroy(el: HTMLPictureElement & { rlPlayer: any }) {
+    // console.log("destroy 11: ", el)
     if (!el.rlPlayer) return;
+    // console.log("destroy 22: ", el.rlPlayer)
     let rlPlayer = el.rlPlayer;
     delete this.players[rlPlayer.reqId];
     rlPlayer = null;
@@ -328,7 +340,7 @@ class Rlottie {
     let frame = rlPlayer.frames[frameNo];
     if (frame) {
       this.onFrame(reqId, frameNo, frame);
-    } else if (this.isSafari) {
+    } else if (isSafari) {
       rlPlayer.rWorker.sendQuery("renderFrame", reqId, frameNo);
     } else {
       if (!rlPlayer.clamped.length) {
@@ -409,8 +421,6 @@ class Rlottie {
   }
 }
 
-export const RLottie = new Rlottie();
-
 class QueryableWorker {
   defaultListener: Function = () => {};
   onError: Function = (e: AbstractWorker, ev: ErrorEvent) => {};
@@ -464,7 +474,7 @@ class QueryableWorker {
     }
     let queryMethod = arguments[0];
     // let args = Array.prototype.slice.call(arguments, 1);
-    if (RLottie.isSafari) {
+    if (isSafari) {
       this.worker?.postMessage({
         queryMethod: queryMethod,
         queryMethodArguments: args,
@@ -514,3 +524,5 @@ class FrameQueue {
     return this.queue.length ? this.queue.shift() : null;
   }
 }
+
+export const RLottie = new Rlottie();

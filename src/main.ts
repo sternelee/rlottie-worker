@@ -21,4 +21,7 @@ function mainInitTgStickers(options: any) {
 
 window.onload = () => {
   mainInitTgStickers({"maxDeviceRatio":2, "cachingModule":3, forceRender: true});
+  setTimeout(() => {
+    RLottie.destroyAll()
+  }, 4000)
 }
