@@ -14,10 +14,11 @@ app.innerHTML = `
 function mainInitTgStickers(options: any) {
   options = options || {};
   document.querySelectorAll('.rlottie_image').forEach(function (imgEl) {
+    // @ts-ignore
     RLottie.init(imgEl, options);
   });
 }
 
 window.onload = () => {
-  mainInitTgStickers({"maxDeviceRatio":2,"cachingModulo":3,forceRender: true});
+  mainInitTgStickers({"maxDeviceRatio":2, "cachingModule":3, forceRender: true});
 }

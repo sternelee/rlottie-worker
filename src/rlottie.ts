@@ -12,7 +12,7 @@ interface IRlPlayer {
   isInViewport: boolean;
   reqId: number;
   el: HTMLPictureElement;
-  nextFrameNo: number;
+  nextFrameNo: number | false;
   frames: {
     [key: number]: Uint8ClampedArray;
   };
@@ -89,11 +89,11 @@ class Rlottie {
   private mainLoop = () => {
     let key, rlPlayer, delta, rendered;
     let now = +Date.now();
-    let checkViewport =
-      !this.checkViewportDate || now - this.checkViewportDate > 1000;
+    let checkViewport = !this.checkViewportDate || (now - this.checkViewportDate) > 1000;
     for (key in this.players) {
       rlPlayer = this.players[key];
-      if (rlPlayer && rlPlayer.frameCount) {
+      if (rlPlayer &&
+          rlPlayer.frameCount) {
         delta = now - rlPlayer.frameThen;
         if (delta > rlPlayer.frameInterval) {
           rendered = this.render(rlPlayer, checkViewport);
@@ -105,21 +105,20 @@ class Rlottie {
     }
     let delay = now - this.lastRenderDate < 100 ? 16 : 500;
     if (delay < 20 && this.isRAF) {
-      this.mainLoopTO = requestAnimationFrame(this.mainLoop);
+      this.mainLoopTO = requestAnimationFrame(this.mainLoop)
     } else {
       this.mainLoopTO = setTimeout(this.mainLoop, delay);
     }
     if (checkViewport) {
       this.checkViewportDate = now;
     }
-  };
+  }
   private setupMainLoop() {
-    let isEmpty = true,
-      key,
-      rlPlayer;
+    let isEmpty = true, key, rlPlayer;
     for (key in this.players) {
       rlPlayer = this.players[key];
-      if (rlPlayer && rlPlayer.frameCount) {
+      if (rlPlayer &&
+          rlPlayer.frameCount) {
         isEmpty = false;
         break;
       }
@@ -131,7 +130,7 @@ class Rlottie {
         }
         try {
           clearTimeout(this.mainLoopTO);
-        } catch (e) {}
+        } catch (e) {};
         this.mainLoopTO = 0;
       } else {
         if (this.isRAF) {
@@ -144,45 +143,39 @@ class Rlottie {
   }
 
   private initApi(callback: Function) {
-    const that = this;
+    const that = this
     if (this.apiInited) {
       callback && callback();
     } else {
       callback && this.initCallbacks.push(callback);
       if (!this.apiInitStarted) {
-        console.log(this.dT(), "rlottie init");
+        console.log(this.dT(), 'rlottie init');
         this.apiInitStarted = true;
         let workersRemain = this.WORKERS_LIMIT;
-        let firstRlottieWorker = (this.rlottieWorkers[0] =
-          new QueryableWorker());
-        firstRlottieWorker.addListener("ready", function () {
-          console.log(that.dT(), "worker #0 ready");
-          firstRlottieWorker.addListener("frame", that.onFrame);
-          firstRlottieWorker.addListener("loaded", that.onLoaded);
+        let firstRlottieWorker = this.rlottieWorkers[0] = new QueryableWorker();
+        firstRlottieWorker.addListener('ready', function () {
+          console.log(that.dT(), 'worker #0 ready');
+          firstRlottieWorker.addListener('frame', that.onFrame);
+          firstRlottieWorker.addListener('loaded', that.onLoaded);
           --workersRemain;
           if (!workersRemain) {
-            console.log(that.dT(), "workers ready");
+            console.log(that.dT(), 'workers ready');
             that.apiInited = true;
             for (let i = 0; i < that.initCallbacks.length; i++) {
               that.initCallbacks[i]();
             }
             that.initCallbacks = [];
           } else {
-            for (
-              let workerNum = 1;
-              workerNum < that.WORKERS_LIMIT;
-              workerNum++
-            ) {
-              (function (workerNum) {
-                let rlottieWorker = (that.rlottieWorkers[workerNum] =
-                  new QueryableWorker());
-                rlottieWorker.addListener("ready", function () {
-                  console.log(that.dT(), "worker #" + workerNum + " ready");
-                  rlottieWorker.addListener("frame", that.onFrame);
-                  rlottieWorker.addListener("loaded", that.onLoaded);
+            for (let workerNum = 1; workerNum < that.WORKERS_LIMIT; workerNum++) {
+              (function(workerNum) {
+                let rlottieWorker = that.rlottieWorkers[workerNum] = new QueryableWorker();
+                rlottieWorker.addListener('ready', function () {
+                  console.log(that.dT(), 'worker #' + workerNum + ' ready');
+                  rlottieWorker.addListener('frame', that.onFrame);
+                  rlottieWorker.addListener('loaded', that.onLoaded);
                   --workersRemain;
                   if (!workersRemain) {
-                    console.log(that.dT(), "workers ready");
+                    console.log(that.dT(), 'workers ready');
                     that.apiInited = true;
                     for (let i = 0; i < that.initCallbacks.length; i++) {
                       that.initCallbacks[i]();
@@ -239,7 +232,7 @@ class Rlottie {
     rlPlayer.reqId = ++this.reqId;
     this.players[this.reqId] = rlPlayer;
     rlPlayer.el = el;
-    rlPlayer.nextFrameNo = 0;
+    rlPlayer.nextFrameNo = false;
     rlPlayer.frames = {};
     rlPlayer.width = Math.trunc(pic_width * curDeviceRatio);
     rlPlayer.height = Math.trunc(pic_height * curDeviceRatio);
@@ -263,7 +256,7 @@ class Rlottie {
     );
   }
 
-  destroy(el: any) {
+  destroy(el: HTMLPictureElement & { rlPlayer: any }) {
     if (!el.rlPlayer) return;
     let rlPlayer = el.rlPlayer;
     delete this.players[rlPlayer.reqId];
@@ -272,29 +265,25 @@ class Rlottie {
   }
 
   private render(rlPlayer: IRlPlayer, checkViewport: boolean) {
-    if (
-      !rlPlayer.canvas ||
-      rlPlayer.canvas.width == 0 ||
-      rlPlayer.canvas.height == 0
-    ) {
+    if (!rlPlayer.canvas ||
+        rlPlayer.canvas.width == 0 ||
+        rlPlayer.canvas.height == 0) {
       return false;
     }
     if (!rlPlayer.forceRender) {
       let focused = window.isFocused ? window.isFocused() : document.hasFocus();
-      if (!focused || rlPlayer.paused || !rlPlayer.frameCount) {
+      if (!focused ||
+          rlPlayer.paused ||
+          !rlPlayer.frameCount) {
         return false;
       }
       let isInViewport = rlPlayer.isInViewport;
       if (isInViewport === undefined || checkViewport) {
         let rect = rlPlayer.el.getBoundingClientRect();
-        if (
-          rect.bottom < 0 ||
-          rect.right < 0 ||
-          rect.top >
-            (window.innerHeight || document.documentElement.clientHeight) ||
-          rect.left >
-            (window.innerWidth || document.documentElement.clientWidth)
-        ) {
+        if (rect.bottom < 0 ||
+            rect.right < 0 ||
+            rect.top > (window.innerHeight || document.documentElement.clientHeight) ||
+            rect.left > (window.innerWidth || document.documentElement.clientWidth)) {
           isInViewport = false;
         } else {
           isInViewport = true;
@@ -306,11 +295,11 @@ class Rlottie {
       }
     }
     let frame = rlPlayer.frameQueue.shift();
-    if (frame !== null) {
+    if (frame) {
       this.doRender(rlPlayer, frame);
       let nextFrameNo = rlPlayer.nextFrameNo;
-      if (nextFrameNo !== 0) {
-        rlPlayer.nextFrameNo = 0;
+      if (nextFrameNo !== false) {
+        rlPlayer.nextFrameNo = false;
         this.requestFrame(rlPlayer.reqId, nextFrameNo);
       }
     }
@@ -318,7 +307,7 @@ class Rlottie {
     return true;
   }
 
-  private doRender(rlPlayer: IRlPlayer, frame: ArrayLike<number>) {
+  private doRender(rlPlayer: IRlPlayer, frame: Uint8ClampedArray) {
     rlPlayer.forceRender = rlPlayer.options.forceRender || false;
     rlPlayer.imageData.data.set(frame);
     rlPlayer.context.putImageData(rlPlayer.imageData, 0, 0);
@@ -334,7 +323,7 @@ class Rlottie {
     }
   }
 
-  private requestFrame(reqId: any, frameNo: any) {
+  private requestFrame(reqId: number, frameNo: number) {
     let rlPlayer = this.players[reqId];
     let frame = rlPlayer.frames[frameNo];
     if (frame) {
@@ -357,7 +346,7 @@ class Rlottie {
     }
   }
 
-  private onFrame = (reqId: number, frameNo: number, frame: ArrayBuffer) => {
+  private onFrame = (reqId: number, frameNo: number, frame: Uint8ClampedArray) => {
     let rlPlayer = this.players[reqId];
     if (
       rlPlayer.options.cachingModule &&
@@ -388,7 +377,7 @@ class Rlottie {
     } else {
       rlPlayer.nextFrameNo = nextFrameNo;
     }
-  };
+  }
 
   private onLoaded = (reqId: number, frameCount: number, fps: number = 60) => {
     let rlPlayer = this.players[reqId];
@@ -409,9 +398,9 @@ class Rlottie {
     rlPlayer.frameQueue = new FrameQueue(fps / 4);
     this.setupMainLoop();
     this.requestFrame(reqId, 0);
-  };
+  }
 
-  init(el: HTMLPictureElement, options: any) {
+  init(el: HTMLPictureElement, options: IOptions) {
     if (!this.isSupported) {
       return false;
     }
@@ -424,17 +413,18 @@ export const RLottie = new Rlottie();
 
 class QueryableWorker {
   defaultListener: Function = () => {};
-  onError: Function = () => {};
-  worker: any = null;
+  onError: Function = (e: AbstractWorker, ev: ErrorEvent) => {};
+  worker: Worker | null = null;
   listeners: { [key: string]: Function } = {};
   constructor(defaultListener?: Function, onError?: Function) {
     this.worker = new Worker();
     this.defaultListener = defaultListener || function () {};
     this.onError = onError || function () {};
     if (onError) {
+      // @ts-ignore
       this.worker.onerror = onError;
     }
-    this.worker.onmessage = (event: any) => {
+    this.worker.onmessage = (event: MessageEvent<any>) => {
       if (
         event.data instanceof Object &&
         event.data.hasOwnProperty("queryMethodListener") &&
@@ -450,10 +440,10 @@ class QueryableWorker {
     };
   }
   postMessage(message: any) {
-    this.worker.postMessage(message);
+    this.worker?.postMessage(message);
   }
   terminate() {
-    this.worker.terminate();
+    this.worker?.terminate();
   }
   addListener(name: string, listener: Function) {
     this.listeners[name] = listener;
@@ -465,7 +455,7 @@ class QueryableWorker {
     This functions takes at least one argument, the method name we want to query.
     Then we can pass in the arguments this the method needs.
   */
-  sendQuery(...arg: any[]) {
+  sendQuery(name: string, ...args: any[]) {
     if (arguments.length < 1) {
       throw new TypeError(
         "QueryableWorker.sendQuery takes at least one argument"
@@ -473,9 +463,9 @@ class QueryableWorker {
       return;
     }
     let queryMethod = arguments[0];
-    let args = Array.prototype.slice.call(arguments, 1);
+    // let args = Array.prototype.slice.call(arguments, 1);
     if (RLottie.isSafari) {
-      this.worker.postMessage({
+      this.worker?.postMessage({
         queryMethod: queryMethod,
         queryMethodArguments: args,
       });
@@ -491,7 +481,7 @@ class QueryableWorker {
         }
       }
 
-      this.worker.postMessage(
+      this.worker?.postMessage(
         {
           queryMethod: queryMethod,
           queryMethodArguments: args,
@@ -503,7 +493,7 @@ class QueryableWorker {
 }
 
 class FrameQueue {
-  queue: any[] = [];
+  queue: Uint8ClampedArray[] = [];
   maxLength: number = 0;
   constructor(maxLength: number) {
     this.maxLength = maxLength;
@@ -517,7 +507,7 @@ class FrameQueue {
   notEmpty() {
     return this.queue.length > 0;
   }
-  push(element: any) {
+  push(element: Uint8ClampedArray) {
     return this.queue.push(element);
   }
   shift() {

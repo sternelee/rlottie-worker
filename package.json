@@ -1,6 +1,6 @@
 {
   "name": "@sternelee/rlottie",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "sternelee",
   "main": "dist/lib/index.umd.js",
   "module": "dist/lib/index.es.js",
